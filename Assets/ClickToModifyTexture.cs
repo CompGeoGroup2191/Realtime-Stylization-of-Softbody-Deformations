@@ -5,6 +5,7 @@ using UnityEngine;
 public class ClickToModifyTexture : MonoBehaviour
 {
     public Camera cam;
+    public bool doSecondColor = false;
 
     // Start is called before the first frame update
     void Start()
@@ -51,7 +52,14 @@ public class ClickToModifyTexture : MonoBehaviour
             //for(int yp = -1*patchH; yp < patchH; ++yp)
             for (int yp = -50; yp < 100; ++yp)
             {
-                tex.SetPixel(((int)pixelUV.x + xp) % tex.width, ((int)pixelUV.y + yp) % tex.height, Color.black);
+                if (!doSecondColor || tex.GetPixel(((int)pixelUV.x + xp) % tex.width, ((int)pixelUV.y + yp) % tex.height) != Color.black)
+                {
+                    tex.SetPixel(((int)pixelUV.x + xp) % tex.width, ((int)pixelUV.y + yp) % tex.height, Color.black);
+                }
+                else
+                {
+                    tex.SetPixel(((int)pixelUV.x + xp) % tex.width, ((int)pixelUV.y + yp) % tex.height, Color.white);
+                }
             }
         }
         
