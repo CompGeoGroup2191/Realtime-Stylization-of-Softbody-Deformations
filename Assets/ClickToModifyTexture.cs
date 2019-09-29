@@ -29,7 +29,7 @@ public class ClickToModifyTexture : MonoBehaviour
 
         if (rend == null || rend.sharedMaterial == null || rend.sharedMaterial.mainTexture == null || meshCollider == null)
         {
-            print((rend == null).ToString() + " " + (rend.sharedMaterial == null).ToString() + " " + (rend.sharedMaterial.mainTexture == null).ToString() + " " + (meshCollider == null).ToString());
+            //print((rend == null).ToString() + " " + (rend.sharedMaterial == null).ToString() + " " + (rend.sharedMaterial.mainTexture == null).ToString() + " " + (meshCollider == null).ToString());
             return;
         }
 
@@ -38,12 +38,13 @@ public class ClickToModifyTexture : MonoBehaviour
         //print(pixelUV.x.ToString() + ", " + pixelUV.y.ToString());
         pixelUV.x *= tex.width;
         pixelUV.y *= tex.height;
-        print(pixelUV.x.ToString() + ", " + pixelUV.y.ToString());
+        //print(pixelUV.x.ToString() + ", " + pixelUV.y.ToString());
 
         int patchW = (int) 0.1 * tex.width;
         int patchH = (int) 0.1 * tex.height;
 
         tex.SetPixel((int)pixelUV.x, (int)pixelUV.y, Color.black);
+        //TODO: work out why these commented for loops don't work
         //for(int xp = -1*patchW; xp < patchW; ++xp)
         for(int xp = 50; xp < 100; ++xp)
         {
@@ -57,6 +58,6 @@ public class ClickToModifyTexture : MonoBehaviour
 
         tex.Apply();
 
-        print(tex.GetPixel((int)pixelUV.x, (int)pixelUV.y).ToString());
+        //print(tex.GetPixel((int)pixelUV.x, (int)pixelUV.y).ToString());
     }
 }
