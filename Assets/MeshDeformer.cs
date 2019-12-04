@@ -21,6 +21,7 @@ public class MeshDeformer : MonoBehaviour
     Vector3 currentForcePoint;
     Vector4[] ogPoints;
 
+
     float currentFourceAmount;
     // Renderer rend;
 
@@ -60,7 +61,28 @@ public class MeshDeformer : MonoBehaviour
         //     originalMesh.vertices[i] = m_deformingMesh.vertices[i];
         // }
         originalMesh.RecalculateNormals();
-        m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
+        var tmpVec2 = new Vector2[m_deformingMesh.vertices.Length];
+        var tmpVec1 = new Vector2[m_deformingMesh.vertices.Length];
+
+        var tmpNorm2 = new Vector2[m_deformingMesh.normals.Length];
+        var tmpNorm1 = new Vector2[m_deformingMesh.normals.Length];
+        // m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
+        for (int i = 0; i < m_deformingMesh.vertices.Length; i++)
+        {
+            tmpNorm2[i] = new Vector2(m_deformingMesh.normals[i].x, m_deformingMesh.normals[i].y);
+            tmpNorm1[i] = new Vector2(m_deformingMesh.normals[i].z, 0f);
+        }
+        for (int i = 0; i < m_deformingMesh.normals.Length; i++)
+        {
+            tmpNorm2[i] = new Vector2(m_deformingMesh.normals[i].x, m_deformingMesh.normals[i].y);
+            tmpNorm1[i] = new Vector2(m_deformingMesh.normals[i].z, 0f);
+        }
+        m_deformingMesh.uv2 = tmpVec2;
+        m_deformingMesh.uv3 = tmpVec1;
+        m_deformingMesh.uv4 = tmpNorm2;
+        m_deformingMesh.uv5 = tmpNorm1;
+        // m_deformingMesh.SetUVs(1, new List<Vector2>(tmpVec2));
+        // m_deformingMesh.SetUVs(2, new List<Vector2>(tmpVec1));
 
         meshCollider = GetComponent<MeshCollider>();
         m_originalVerts = m_deformingMesh.vertices;
@@ -83,8 +105,9 @@ public class MeshDeformer : MonoBehaviour
         rend = GetComponent<Renderer>();
         rend.enabled = true;
         rend.GetPropertyBlock(propertyBlock);
-        propertyBlock.SetVectorArray("OriginalVertecies", ogPoints);
+        // propertyBlock.SetVectorArray("OriginalVertecies", ogPoints);
         rend.material.SetFloatArray("_Damage", vertex_damage);
+        rend.material.SetVectorArray("ogPoints", ogPoints);
     }
 
     // Update is called once per frame
@@ -124,6 +147,16 @@ public class MeshDeformer : MonoBehaviour
             m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
             rend.material.SetFloatArray("_Damage", vertex_damage);
         }
+        var tmpNorm2 = new Vector2[m_deformingMesh.normals.Length];
+        var tmpNorm1 = new Vector2[m_deformingMesh.normals.Length];
+        for (int i = 0; i < m_deformingMesh.normals.Length; i++)
+        {
+
+            tmpNorm2[i] = Vector2.Max(new Vector2(m_deformingMesh.normals[i].x, m_deformingMesh.normals[i].y), m_deformingMesh.uv4[i]);
+            tmpNorm1[i] = Vector2.Max(new Vector2(m_deformingMesh.normals[i].z, 0f), m_deformingMesh.uv5[i]);
+        }
+        m_deformingMesh.uv4 = tmpNorm2;
+        m_deformingMesh.uv5 = tmpNorm1;
     }
 
     public void AddDeformingForce(Vector3 point, float force)
@@ -134,6 +167,10 @@ public class MeshDeformer : MonoBehaviour
             Vector3 pointToVertex = m_displacedVerts[i] - point;
             float attenuatedForce = force / (1f + pointToVertex.sqrMagnitude);
             float velocity = attenuatedForce * Time.deltaTime;
+            // if (attenuatedForce > force) {
+
+            //     m_vertexVelocities[i] += pointToVertex.normalized * velocity;
+            // }
             m_vertexVelocities[i] += pointToVertex.normalized * velocity;
         }
     }
