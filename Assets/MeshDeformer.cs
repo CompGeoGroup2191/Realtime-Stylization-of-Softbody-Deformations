@@ -8,6 +8,7 @@ public class MeshDeformer : MonoBehaviour
     /**
      * BIG NOTE: For this to work the object that it's attached to has to use a mesh collider.
      */
+    Mesh originalMesh;
     Mesh m_deformingMesh;
     MeshCollider meshCollider;
     Vector3[] m_originalVerts;
@@ -18,7 +19,10 @@ public class MeshDeformer : MonoBehaviour
     public bool holdForce = false;
     bool forceIsApplied;
     Vector3 currentForcePoint;
+    Vector4[] ogPoints;
+
     float currentFourceAmount;
+    // Renderer rend;
 
     /**
      * For stylization of deformations
@@ -26,6 +30,7 @@ public class MeshDeformer : MonoBehaviour
     Renderer rend;
     float[] vertex_damage;
     public float damage_threshold = 2.0f;
+    MaterialPropertyBlock propertyBlock;
 
     struct Spring
     {
@@ -44,13 +49,28 @@ public class MeshDeformer : MonoBehaviour
     void Start()
     {
         m_deformingMesh = GetComponent<MeshFilter>().mesh;
+        // originalMesh = new Mesh();
+        originalMesh = Instantiate(m_deformingMesh);
+
+        // originalMesh.vertices = new Vector3[m_deformingMesh.vertices.Length];
+        // originalMesh.vertices = new Vector3[m_deformingMesh.vertices.Length];
+
+        // for (int i = 0; i < m_deformingMesh.vertices.Length; i++)
+        // {
+        //     originalMesh.vertices[i] = m_deformingMesh.vertices[i];
+        // }
+        originalMesh.RecalculateNormals();
+        m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
+
         meshCollider = GetComponent<MeshCollider>();
         m_originalVerts = m_deformingMesh.vertices;
         m_displacedVerts = new Vector3[m_originalVerts.Length];
         vertex_damage = new float[m_originalVerts.Length];
+        ogPoints = new Vector4[m_originalVerts.Length];
         for (int i = 0; i < m_originalVerts.Length; i++)
         {
             m_displacedVerts[i] = m_originalVerts[i];
+            ogPoints[i] = new Vector4(m_originalVerts[i].x, m_originalVerts[i].y, m_originalVerts[i].z, 1.0f);
             vertex_damage[i] = 0.0f;
         }
         m_vertexVelocities = new Vector3[m_originalVerts.Length];
@@ -62,6 +82,8 @@ public class MeshDeformer : MonoBehaviour
         // Grab the renderer, assume that the material is the correct shader
         rend = GetComponent<Renderer>();
         rend.enabled = true;
+        rend.GetPropertyBlock(propertyBlock);
+        propertyBlock.SetVectorArray("OriginalVertecies", ogPoints);
         rend.material.SetFloatArray("_Damage", vertex_damage);
     }
 
@@ -99,6 +121,7 @@ public class MeshDeformer : MonoBehaviour
 
             // Following the deformation, style the material
             // rend.material.SetColor("_Color", new Color(0.5f, 0.1f, 0.1f, 1.0f));
+            m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
             rend.material.SetFloatArray("_Damage", vertex_damage);
         }
     }
@@ -137,16 +160,17 @@ public class MeshDeformer : MonoBehaviour
             // Debug.Log(displacement);
             // Debug.Log(mltp);
 
-            vertex_damage[i] = NewVertDamage(vertex_damage[i], displacement.sqrMagnitude * (10 / mltp) );
+            vertex_damage[i] = NewVertDamage(vertex_damage[i], displacement.sqrMagnitude * (10 / mltp));
         }
     }
 
-    public float NewVertDamage(float prev, float force) {
+    public float NewVertDamage(float prev, float force)
+    {
 
         float new_force = force / damage_threshold;
 
         // Take the max between them
-        
+
 
         // And also limit it at 1
         return Mathf.Min(Mathf.Max(prev, new_force), 1.0f);
