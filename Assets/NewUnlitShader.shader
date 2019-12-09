@@ -3,7 +3,7 @@
     Properties
     {
         _MainTex ("Main", 2D) = "white" {}
-        _DamageTex ("Dayum", 2D) = "notwhite" {}
+        _DamageTex ("DamageTex", 2D) = "notwhite" {}
         _factor ("factor", float) = 1.0
         _threshold ("threshold", float) = 0.1
         _power ("power", float) = 2.0
