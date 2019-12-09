@@ -9,7 +9,7 @@ public class MeshDeformerInput : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
@@ -20,6 +20,11 @@ public class MeshDeformerInput : MonoBehaviour
             HandleInput();
         }
     }
+
+    /**
+     * Called when the mouse is clicked. Checks for an intersection with an object in the scene
+     * which has a MeshDeformer component.
+     */
     void HandleInput()
     {
         Ray inputRay = Camera.main.ScreenPointToRay(Input.mousePosition);

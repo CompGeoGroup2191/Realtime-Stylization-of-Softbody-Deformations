@@ -2,12 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-//[RequireComponent(typeof(MeshFilter))]
 public class MeshDeformer : MonoBehaviour
 {
-    /**
-     * BIG NOTE: For this to work the object that it's attached to has to use a mesh collider.
-     */
     Mesh originalMesh;
     Mesh m_deformingMesh;
     MeshCollider meshCollider;
@@ -20,10 +16,7 @@ public class MeshDeformer : MonoBehaviour
     bool forceIsApplied;
     Vector3 currentForcePoint;
     Vector4[] ogPoints;
-
-
     float currentFourceAmount;
-    // Renderer rend;
 
     /**
      * For stylization of deformations
@@ -41,7 +34,6 @@ public class MeshDeformer : MonoBehaviour
         float dampingForce;
     }
 
-
     public Mesh deformedMesh { get { return m_deformingMesh; } }
     public Vector3[] displacedVerts { get { return m_displacedVerts; } }
     public Vector3[] originalVerts { get { return m_originalVerts; } }
@@ -50,23 +42,16 @@ public class MeshDeformer : MonoBehaviour
     void Start()
     {
         m_deformingMesh = GetComponent<MeshFilter>().mesh;
-        // originalMesh = new Mesh();
         originalMesh = Instantiate(m_deformingMesh);
 
-        // originalMesh.vertices = new Vector3[m_deformingMesh.vertices.Length];
-        // originalMesh.vertices = new Vector3[m_deformingMesh.vertices.Length];
-
-        // for (int i = 0; i < m_deformingMesh.vertices.Length; i++)
-        // {
-        //     originalMesh.vertices[i] = m_deformingMesh.vertices[i];
-        // }
         originalMesh.RecalculateNormals();
+        // Initialize some temporary arrays to pass in the deformed vertecies and normals to the shader
         var tmpVec2 = new Vector2[m_deformingMesh.vertices.Length];
         var tmpVec1 = new Vector2[m_deformingMesh.vertices.Length];
 
         var tmpNorm2 = new Vector2[m_deformingMesh.normals.Length];
         var tmpNorm1 = new Vector2[m_deformingMesh.normals.Length];
-        // m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
+        // Populate the temporary arrays with copies of the mesh's normals and vertecies
         for (int i = 0; i < m_deformingMesh.vertices.Length; i++)
         {
             tmpNorm2[i] = new Vector2(m_deformingMesh.normals[i].x, m_deformingMesh.normals[i].y);
@@ -77,12 +62,11 @@ public class MeshDeformer : MonoBehaviour
             tmpNorm2[i] = new Vector2(m_deformingMesh.normals[i].x, m_deformingMesh.normals[i].y);
             tmpNorm1[i] = new Vector2(m_deformingMesh.normals[i].z, 0f);
         }
+        // Store the temp arrays in the mesh's extra uv coordinates
         m_deformingMesh.uv2 = tmpVec2;
         m_deformingMesh.uv3 = tmpVec1;
         m_deformingMesh.uv4 = tmpNorm2;
         m_deformingMesh.uv5 = tmpNorm1;
-        // m_deformingMesh.SetUVs(1, new List<Vector2>(tmpVec2));
-        // m_deformingMesh.SetUVs(2, new List<Vector2>(tmpVec1));
 
         meshCollider = GetComponent<MeshCollider>();
         m_originalVerts = m_deformingMesh.vertices;
@@ -101,11 +85,9 @@ public class MeshDeformer : MonoBehaviour
 
         var bounds = m_deformingMesh.bounds;
 
-        // Grab the renderer, assume that the material is the correct shader
         rend = GetComponent<Renderer>();
         rend.enabled = true;
         rend.GetPropertyBlock(propertyBlock);
-        // propertyBlock.SetVectorArray("OriginalVertecies", ogPoints);
         rend.material.SetFloatArray("_Damage", vertex_damage);
         rend.material.SetVectorArray("ogPoints", ogPoints);
     }
@@ -129,8 +111,6 @@ public class MeshDeformer : MonoBehaviour
                 else
                 {
                     displacement = m_displacedVerts[i] - m_originalVerts[i];
-
-                    // vertex_damage[i] = Mathf.Max(vertex_damage[i], displacement.magnitude * 3.0f);
                 }
                 velocity -= displacement * m_springForce * Time.deltaTime;
                 velocity *= 1f - m_damping * Time.deltaTime;
@@ -139,11 +119,8 @@ public class MeshDeformer : MonoBehaviour
             }
             m_deformingMesh.vertices = m_displacedVerts;
             m_deformingMesh.RecalculateNormals();
-            //m_deformingMesh.RecalculateBounds();
             meshCollider.sharedMesh = m_deformingMesh;
 
-            // Following the deformation, style the material
-            // rend.material.SetColor("_Color", new Color(0.5f, 0.1f, 0.1f, 1.0f));
             m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
             rend.material.SetFloatArray("_Damage", vertex_damage);
         }
@@ -159,22 +136,12 @@ public class MeshDeformer : MonoBehaviour
         m_deformingMesh.uv5 = tmpNorm1;
     }
 
-    public void AddDeformingForce(Vector3 point, float force)
-    {
-        point = transform.InverseTransformPoint(point);
-        for (int i = 0; i < m_displacedVerts.Length; i++)
-        {
-            Vector3 pointToVertex = m_displacedVerts[i] - point;
-            float attenuatedForce = force / (1f + pointToVertex.sqrMagnitude);
-            float velocity = attenuatedForce * Time.deltaTime;
-            // if (attenuatedForce > force) {
-
-            //     m_vertexVelocities[i] += pointToVertex.normalized * velocity;
-            // }
-            m_vertexVelocities[i] += pointToVertex.normalized * velocity;
-        }
-    }
-
+    /**
+     * Sets the deforming force to the mesh, deforming the mesh in the progress.
+     *
+     * @param forcePoint: The point at which the force is being applied.
+     * @param forceAmount: The amount of force is being applied.
+     */
     public void SetDeformingForce(Vector3 forcePoint, float forceAmount)
     {
         currentForcePoint = transform.InverseTransformPoint(forcePoint);
@@ -191,16 +158,19 @@ public class MeshDeformer : MonoBehaviour
             Vector3 displacement = m_displacedVerts[i] - m_originalVerts[i];
 
             // Diff from force point
-            // float mltp = Mathf.Max(1.0f, (forcePoint - m_originalVerts[i]).sqrMagnitude);
             float mltp = Mathf.Max(1.0f, (m_originalVerts[i] - forcePoint).magnitude);
-            // Vector3 
-            // Debug.Log(displacement);
-            // Debug.Log(mltp);
 
             vertex_damage[i] = NewVertDamage(vertex_damage[i], displacement.sqrMagnitude * (10 / mltp));
         }
     }
 
+    /**
+     * Calculates the new damage value.
+     *
+     * @param prev: The previous damage value.
+     * @param force: The force used to determine the new deforming force.
+     * @return: The new damage value.
+     */
     public float NewVertDamage(float prev, float force)
     {
 
