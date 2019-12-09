@@ -56,6 +56,7 @@ public class MeshDeformer : MonoBehaviour
         }
         m_vertexVelocities = new Vector3[m_originalVerts.Length];
         forceIsApplied = false;
+        m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
     }
 
     // Update is called once per frame
@@ -89,7 +90,6 @@ public class MeshDeformer : MonoBehaviour
             m_deformingMesh.RecalculateNormals();
             meshCollider.sharedMesh = m_deformingMesh;
 
-            m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
         }
         var tmpNorm2 = new Vector2[m_deformingMesh.normals.Length];
         var tmpNorm1 = new Vector2[m_deformingMesh.normals.Length];
