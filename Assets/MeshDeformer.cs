@@ -15,28 +15,7 @@ public class MeshDeformer : MonoBehaviour
     public bool holdForce = false;
     bool forceIsApplied;
     Vector3 currentForcePoint;
-    Vector4[] ogPoints;
     float currentFourceAmount;
-
-    /**
-     * For stylization of deformations
-     */
-    Renderer rend;
-    float[] vertex_damage;
-    public float damage_threshold = 2.0f;
-    MaterialPropertyBlock propertyBlock;
-
-    struct Spring
-    {
-        float springConstant;
-        float length;
-        float restLength;
-        float dampingForce;
-    }
-
-    public Mesh deformedMesh { get { return m_deformingMesh; } }
-    public Vector3[] displacedVerts { get { return m_displacedVerts; } }
-    public Vector3[] originalVerts { get { return m_originalVerts; } }
 
     // Start is called before the first frame update
     void Start()
@@ -71,25 +50,12 @@ public class MeshDeformer : MonoBehaviour
         meshCollider = GetComponent<MeshCollider>();
         m_originalVerts = m_deformingMesh.vertices;
         m_displacedVerts = new Vector3[m_originalVerts.Length];
-        vertex_damage = new float[m_originalVerts.Length];
-        ogPoints = new Vector4[m_originalVerts.Length];
         for (int i = 0; i < m_originalVerts.Length; i++)
         {
             m_displacedVerts[i] = m_originalVerts[i];
-            ogPoints[i] = new Vector4(m_originalVerts[i].x, m_originalVerts[i].y, m_originalVerts[i].z, 1.0f);
-            vertex_damage[i] = 0.0f;
         }
         m_vertexVelocities = new Vector3[m_originalVerts.Length];
         forceIsApplied = false;
-
-
-        var bounds = m_deformingMesh.bounds;
-
-        rend = GetComponent<Renderer>();
-        rend.enabled = true;
-        rend.GetPropertyBlock(propertyBlock);
-        rend.material.SetFloatArray("_Damage", vertex_damage);
-        rend.material.SetVectorArray("ogPoints", ogPoints);
     }
 
     // Update is called once per frame
@@ -117,21 +83,25 @@ public class MeshDeformer : MonoBehaviour
                 m_vertexVelocities[i] = velocity;
                 m_displacedVerts[i] += velocity * Time.deltaTime;
             }
+            // Assign the deformed vertices to the mesh and recalculate the normals. Then update
+            // the sharedMesh for the meshCollider
             m_deformingMesh.vertices = m_displacedVerts;
             m_deformingMesh.RecalculateNormals();
             meshCollider.sharedMesh = m_deformingMesh;
 
             m_deformingMesh.SetUVs(1, new List<Vector3>(originalMesh.vertices));
-            rend.material.SetFloatArray("_Damage", vertex_damage);
         }
         var tmpNorm2 = new Vector2[m_deformingMesh.normals.Length];
         var tmpNorm1 = new Vector2[m_deformingMesh.normals.Length];
         for (int i = 0; i < m_deformingMesh.normals.Length; i++)
         {
-
+            // To have the texture modifications persist we find the max value between the new deformed normals
+            // and the previous frames deformed normals. The max value is then stored in the uv channels 4 and 5 for
+            // use in the shader
             tmpNorm2[i] = Vector2.Max(new Vector2(m_deformingMesh.normals[i].x, m_deformingMesh.normals[i].y), m_deformingMesh.uv4[i]);
             tmpNorm1[i] = Vector2.Max(new Vector2(m_deformingMesh.normals[i].z, 0f), m_deformingMesh.uv5[i]);
         }
+        // Pass the normals to the mesh so they can be accessed in the shader.
         m_deformingMesh.uv4 = tmpNorm2;
         m_deformingMesh.uv5 = tmpNorm1;
     }
@@ -160,26 +130,6 @@ public class MeshDeformer : MonoBehaviour
             // Diff from force point
             float mltp = Mathf.Max(1.0f, (m_originalVerts[i] - forcePoint).magnitude);
 
-            vertex_damage[i] = NewVertDamage(vertex_damage[i], displacement.sqrMagnitude * (10 / mltp));
         }
-    }
-
-    /**
-     * Calculates the new damage value.
-     *
-     * @param prev: The previous damage value.
-     * @param force: The force used to determine the new deforming force.
-     * @return: The new damage value.
-     */
-    public float NewVertDamage(float prev, float force)
-    {
-
-        float new_force = force / damage_threshold;
-
-        // Take the max between them
-
-
-        // And also limit it at 1
-        return Mathf.Min(Mathf.Max(prev, new_force), 1.0f);
     }
 }
